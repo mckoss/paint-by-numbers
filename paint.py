@@ -75,6 +75,24 @@ class paint_iter(object):
                 continue
             return self.aPos
 
+class paint_vector_iter(object):
+    def __init__(self, n, aRuns):
+        self.n = n
+        self.aRuns = aRuns
+        self.size = len(aRuns)
+        self.pi = paint_iter(n, aRuns)
+        
+    def __iter__(self):
+        return self
+    
+    def next(self):
+        aPos = self.pi.next()
+        aVector = [0 for i in range(self.n)]
+        for i in range(self.size):
+            for j in range(aPos[i], aPos[i]+self.aRuns[i]):
+                aVector[j] = 1
+        return aVector
+
 # --------------------------------------------------------------------
 # Unit Tests
 # --------------------------------------------------------------------
@@ -83,9 +101,6 @@ import unittest
 import test_data
 
 class TestPBN(unittest.TestCase):
-    def test_Basic(self):
-        self.assertEqual(2, 2)
-        
     def test_iter(self):
         pi = [list(i) for i in paint_iter(10, [1])]
         self.assertEqual(pi[0], [0])
@@ -99,6 +114,13 @@ class TestPBN(unittest.TestCase):
         
     def test_iter_error(self):
         self.assertRaises(Exception, lambda x: paint_iter(3, [2,2]))
+        
+    def test_paint_vector(self):
+        pi = list(paint_vector_iter(2, [1]))
+        self.assertEqual(pi, [[1,0], [0,1]])
+        
+        pi = list(paint_vector_iter(5, [1, 2]))
+        self.assertEqual(pi, [[1,0,1,1,0],[1,0,0,1,1],[0,1,0,1,1]])
 
 if __name__ == "__main__":
     main()
