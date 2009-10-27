@@ -47,7 +47,8 @@ class paint_iter(object):
         for r in aRuns:
             self.aPos.append(pos)
             pos += r + 1
-            
+        
+        pos -= 1    
         if pos > self.n:
             raise Exception("Runs %r won't fit in allotted space of %d squares." % (aRuns, n))
 
@@ -99,13 +100,34 @@ def solve_row(row, aRuns):
     pattern are ignored. """
     
     n = len(row)
-    aPattern = None
-    for aVector in paint_vector_iter(n, aRuns):
-        if consistent_row(row, aVector):
-            if aPattern is None:
-                aPattern = aVector
+    pattern = None
+    for trial in paint_vector_iter(n, aRuns):
+        if consistent_row(row, trial):
+            if pattern is None:
+                pattern = trial
             else:
-                intersect_row(aPattern, aVector)
+                intersect_row(pattern, trial)
+                
+    return pattern
+                
+def consistent_row(row, trial):
+    """ A trial is consistent if for all the 0's and 1's in row, we have
+    matching values in the trial. """
+    
+    for i in range(len(row)):
+        if row[i] is not None and trial[i] != row[i]:
+            return False
+        
+    return True
+
+def intersect_row(pattern, trial):
+    """ Reduce the pattern by setting non-matching cells in trial to None """
+    
+    for i in range(len(pattern)):
+        if trial[i] != pattern[i]:
+            pattern[i] = None
+            
+    return pattern
     
     
 
@@ -128,8 +150,11 @@ class TestPBN(unittest.TestCase):
         pi = [list(i) for i in paint_iter(4, [1,1])]
         self.assertEqual(pi, [[0,2], [0,3], [1, 3]])
         
+        pi = [list(i) for i in paint_iter(3, [3])]
+        self.assertEqual(pi, [[0]])
+        
     def test_iter_error(self):
-        self.assertRaises(Exception, lambda x: paint_iter(3, [2,2])
+        self.assertRaises(Exception, lambda x: paint_iter(3, [2,2]))
         
     def test_paint_vector(self):
         pi = list(paint_vector_iter(2, [1]))
@@ -137,6 +162,21 @@ class TestPBN(unittest.TestCase):
         
         pi = list(paint_vector_iter(5, [1, 2]))
         self.assertEqual(pi, [[1,0,1,1,0],[1,0,0,1,1],[0,1,0,1,1]])
+        
+        pi = list(paint_vector_iter(3, [3]))
+        self.assertEqual(pi, [[1,1,1]])
+        
+    def test_row_util(self):
+        self.assert_(consistent_row([1,0,None], [1,0,1]))
+        self.assertEqual(consistent_row([1,0,None], [0,0,1]), False)
+        
+        self.assertEqual(intersect_row([1,0,1], [1,0,0]), [1,0,None])
+        
+    def test_solve_row(self):
+        self.assertEqual(solve_row([None,None,None], [3]), [1, 1, 1])
+        self.assertEqual(solve_row([None,None,None], [2]), [None, 1, None])
+        self.assertEqual(solve_row([None,None,None], [1,1]), [1,0,1])
+
 
 if __name__ == "__main__":
     main()
