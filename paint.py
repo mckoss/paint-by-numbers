@@ -34,9 +34,6 @@ def usage():
     print "-f <file>\t: Solve Paint by Numbers in file"
     print "-t\t\t: Run Unit tests"
     
-def solve_problem(problem):
-    return None
-
 class paint_iter(object):
     """ Iterator for paint by numbers runs.  Returns all combinations
     of starting positions for each run """
@@ -76,6 +73,7 @@ class paint_iter(object):
             return self.aPos
 
 class paint_vector_iter(object):
+    """ Iterator produces each of the vector representation of a paint by numbers run pattern """
     def __init__(self, n, aRuns):
         self.n = n
         self.aRuns = aRuns
