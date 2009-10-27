@@ -201,6 +201,8 @@ class TestPBN(unittest.TestCase):
         solution = solve_paint(test_data.simple1)
         self.assertEqual(len(solution), test_data.simple1['rows'])
         self.assertEqual(len(solution[0]), test_data.simple1['columns'])
+        
+        self.assertEqual(solution, test_data.simple1['test_solution'])
 
 if __name__ == "__main__":
     main()
