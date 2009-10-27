@@ -92,6 +92,24 @@ class paint_vector_iter(object):
             for j in range(aPos[i], aPos[i]+self.aRuns[i]):
                 aVector[j] = 1
         return aVector
+    
+def solve_row(row, aRuns):
+    """ row contains 0,1, or None based on apriori values known to exist
+    at each square.  This function fills in any additional values that
+    are currently unconstrained but are determined uniquely by the available
+    patterns.  Patterns of runs that are not consistent with the current row
+    pattern are ignored. """
+    
+    n = len(row)
+    aPattern = None
+    for aVector in paint_vector_iter(n, aRuns):
+        if consistent_row(row, aVector):
+            if aPattern is None:
+                aPattern = aVector
+            else:
+                intersect_row(aPattern, aVector)
+    
+    
 
 # --------------------------------------------------------------------
 # Unit Tests
@@ -113,7 +131,7 @@ class TestPBN(unittest.TestCase):
         self.assertEqual(pi, [[0,2], [0,3], [1, 3]])
         
     def test_iter_error(self):
-        self.assertRaises(Exception, lambda x: paint_iter(3, [2,2]))
+        self.assertRaises(Exception, lambda x: paint_iter(3, [2,2])
         
     def test_paint_vector(self):
         pi = list(paint_vector_iter(2, [1]))
