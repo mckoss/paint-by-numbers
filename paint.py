@@ -51,9 +51,35 @@ def solve_paint(paint):
     
     if 'solution' not in paint:
         paint['solution'] = [[None for column in range(paint['columns'])] for row in range(paint['rows'])]
+    
+    countLast = None
+    countNone = sum(paint['solution'][i].count(None) for i in range(paint['rows']))
+    while countNone != countLast:
+        for row, runs in zip(paint['solution'], paint['row_runs']):
+            solve_row(row, runs)
+        for i, column, runs in zip(range(paint['columns']),
+                                   columns(paint['solution']),
+                                   paint['column_runs']):
+            solve_row(column, runs)
+            set_column(paint['solution'], i, column)
+        
+        countLast = countNone
+        countNone = sum(paint['solution'][i].count(None) for i in range(paint['rows']))
                              
     return paint['solution']
-    
+
+def columns(a):
+    """ Return a list for each of the columns on an array (generator function) """
+    for column in range(len(a[0])):
+        aColumn = []
+        for row in range(len(a)):
+            aColumn.append(a[row][column])
+        yield aColumn
+        
+def set_column(a, i, column):
+    for row in range(len(column)):
+        a[row][i] = column[row]
+    return a
     
 class paint_iter(object):
     """ Iterator for paint by numbers runs.  Returns all combinations
@@ -128,6 +154,10 @@ def solve_row(row, aRuns):
                 pattern = trial
             else:
                 intersect_row(pattern, trial)
+
+    # Copy the resulting pattern back into the original row             
+    for i in range(n):
+        row[i] = pattern[i]
                 
     return pattern
                 
@@ -197,12 +227,18 @@ class TestPBN(unittest.TestCase):
         self.assertEqual(solve_row([None,None,None], [2]), [None, 1, None])
         self.assertEqual(solve_row([None,None,None], [1,1]), [1,0,1])
         
+    def test_columns(self):
+        self.assertEqual(list(columns([[1,2],[3,4]])), [[1,3],[2,4]])
+        self.assertEqual(set_column([[1,2],[3,4]], 1, [5,6]), [[1,5],[3,6]])
+        
     def test_solve_paint(self):
         solution = solve_paint(test_data.simple1)
         self.assertEqual(len(solution), test_data.simple1['rows'])
         self.assertEqual(len(solution[0]), test_data.simple1['columns'])
-        
         self.assertEqual(solution, test_data.simple1['test_solution'])
+        
+        solution = solve_paint(test_data.simple2)
+        self.assertEqual(solution, test_data.simple2['test_solution'])
 
 if __name__ == "__main__":
     main()
