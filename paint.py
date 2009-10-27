@@ -34,6 +34,27 @@ def usage():
     print "-f <file>\t: Solve Paint by Numbers in file"
     print "-t\t\t: Run Unit tests"
     
+def solve_paint(paint):
+    """ Solve a Point by Numbers puzzle.  The paint dictionary must contain:
+    
+    rows: number of rows in the puzzle
+    columns: number of columns in the puzzle
+    row_runs: array of sequences (one per row), of runs of consecutive 1's in the solution row
+    column_runs: array of sequences (one per column), of runs of consecutive 1's in the solution column
+    solution: (optional) partially specified array for the solution - an array of row vectors containing
+              0, 1, or None (not specified).
+    
+    We start with an un-constrained array for the solution (default, all None), and successively apply
+    the row and column runs to further constrain the solution until we can find no additional constrained
+    values.
+    """
+    
+    if 'solution' not in paint:
+        paint['solution'] = [[None for column in range(paint['columns'])] for row in range(paint['rows'])]
+                             
+    return paint['solution']
+    
+    
 class paint_iter(object):
     """ Iterator for paint by numbers runs.  Returns all combinations
     of starting positions for each run """
@@ -129,7 +150,6 @@ def intersect_row(pattern, trial):
             
     return pattern
     
-    
 
 # --------------------------------------------------------------------
 # Unit Tests
@@ -176,7 +196,11 @@ class TestPBN(unittest.TestCase):
         self.assertEqual(solve_row([None,None,None], [3]), [1, 1, 1])
         self.assertEqual(solve_row([None,None,None], [2]), [None, 1, None])
         self.assertEqual(solve_row([None,None,None], [1,1]), [1,0,1])
-
+        
+    def test_solve_paint(self):
+        solution = solve_paint(test_data.simple1)
+        self.assertEqual(len(solution), test_data.simple1['rows'])
+        self.assertEqual(len(solution[0]), test_data.simple1['columns'])
 
 if __name__ == "__main__":
     main()
