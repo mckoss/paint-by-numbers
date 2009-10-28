@@ -4,9 +4,14 @@ Paint.py - Paint by numbers solver
 
 import sys, getopt, os
 
+import yaml
+
+DEBUG = False
+
 def main():
+    global DEBUG
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "thf:")
+        opts, args = getopt.getopt(sys.argv[1:], "dthf:")
     except getopt.GetoptError, err:
         # print help information and exit:
         print str(err) # will print something like "option -a not recognized"
@@ -19,10 +24,12 @@ def main():
         if o == '-h':
             usage()
             sys.exit()
+        if o == '-d':
+            DEBUG = True
         if o == '-f':
-            Puzzazz(a)
-        if o == '-b':
-            Boggle(a)
+            paint = load_paint(a)
+            solve_paint(paint)
+            print_paint(paint)
         if o == '-t':
             suite = unittest.TestLoader().loadTestsFromTestCase(TestPBN)
             unittest.TextTestRunner(verbosity=2).run(suite)
@@ -33,6 +40,55 @@ def usage():
     print "-h\t\t: help"
     print "-f <file>\t: Solve Paint by Numbers in file"
     print "-t\t\t: Run Unit tests"
+    print "-d\t\t: Print debug information during solve"
+    
+def print_paint(paint):
+    if 'solution' not in paint:
+        paint['solution'] = [[None for column in range(paint['columns'])] for row in range(paint['rows'])]
+
+    i = 0
+    for row in paint['solution']:
+        i += 1
+        print "Row %2d: %s" % (i, row_string(row))
+        
+def load_paint(sFile):
+    f = open(sFile)
+    paint = yaml.load(f)
+    f.close()
+    
+    if type(paint['rows']) != int or type(paint['columns']) != int:
+        raise "'rows' and 'columns' must be integers"
+    if type(paint['row_runs']) != list or type(paint['column_runs']) != list:
+        raise "'row_runs' and 'column_runs' must be lists"
+    
+    if len(paint['row_runs']) != paint['rows']:
+        raise "'row_runs' has %d rows, when it should have %d" % (len(paint['row_runs']), paint['rows'])
+    
+    if len(paint['column_runs']) != paint['columns']:
+        raise "'column_runs' has %d columns, when it should have %d" % (len(paint['column_runs']), paint['columns'])
+    
+    for runs in paint['row_runs']:
+        for x in runs:
+            if type(x) != int:
+                raise "Row run %r contains a non-integer: %r" % (runs, x)
+            
+    for runs in paint['column_runs']:
+        for x in runs:
+            if type(x) != int:
+                raise "Column run %r contains a non-integer: %r" % (runs, x)
+    return paint
+        
+def row_string(row):
+    s = ''
+    for val in row:
+        if val == None:
+            s += '_'
+        elif val == 1:
+            s += 'X'
+        else:
+            s += '.'
+    return s
+            
     
 def solve_paint(paint):
     """ Solve a Point by Numbers puzzle.  The paint dictionary must contain:
@@ -54,16 +110,27 @@ def solve_paint(paint):
     
     countLast = None
     countNone = sum(paint['solution'][i].count(None) for i in range(paint['rows']))
+    
     while countNone != countLast:
+        countLast = countNone
+        if DEBUG:
+            print "%d squares remaining" % countNone
+            print_paint(paint)
+            
         for row, runs in zip(paint['solution'], paint['row_runs']):
             solve_row(row, runs)
+    
+        if DEBUG:
+            countNone = sum(paint['solution'][i].count(None) for i in range(paint['rows']))
+            print "%d squares remaining" % countNone
+            print_paint(paint)
+        
         for i, column, runs in zip(range(paint['columns']),
                                    columns(paint['solution']),
                                    paint['column_runs']):
             solve_row(column, runs)
             set_column(paint['solution'], i, column)
         
-        countLast = countNone
         countNone = sum(paint['solution'][i].count(None) for i in range(paint['rows']))
                              
     return paint['solution']
@@ -154,6 +221,9 @@ def solve_row(row, aRuns):
                 pattern = trial
             else:
                 intersect_row(pattern, trial)
+                
+    if pattern is None:
+        raise "Inconsistent run description: %r cannot match row %s" % (aRuns, row_string(row))
 
     # Copy the resulting pattern back into the original row             
     for i in range(n):
@@ -215,6 +285,9 @@ class TestPBN(unittest.TestCase):
         
         pi = list(paint_vector_iter(3, [3]))
         self.assertEqual(pi, [[1,1,1]])
+        
+        pi = list(paint_vector_iter(3, []))
+        self.assertEqual(pi, [[0,0,0]])
         
     def test_row_util(self):
         self.assert_(consistent_row([1,0,None], [1,0,1]))
