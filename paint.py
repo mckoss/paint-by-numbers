@@ -111,7 +111,7 @@ def solve_paint(paint):
     countLast = None
     countNone = sum(paint['solution'][i].count(None) for i in range(paint['rows']))
     
-    while countNone != countLast:
+    while countNone != 0 and countNone != countLast:
         countLast = countNone
         if DEBUG:
             print "%d squares remaining" % countNone
@@ -122,8 +122,9 @@ def solve_paint(paint):
     
         if DEBUG:
             countNone = sum(paint['solution'][i].count(None) for i in range(paint['rows']))
-            print "%d squares remaining" % countNone
-            print_paint(paint)
+            if countNone != 0:
+                print "%d squares remaining" % countNone
+                print_paint(paint)
         
         for i, column, runs in zip(range(paint['columns']),
                                    columns(paint['solution']),
