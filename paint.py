@@ -56,26 +56,30 @@ def load_paint(sFile):
     paint = yaml.load(f)
     f.close()
     
-    if type(paint['rows']) != int or type(paint['columns']) != int:
-        raise "'rows' and 'columns' must be integers"
-    if type(paint['row_runs']) != list or type(paint['column_runs']) != list:
-        raise "'row_runs' and 'column_runs' must be lists"
-    
-    if len(paint['row_runs']) != paint['rows']:
-        raise "'row_runs' has %d rows, when it should have %d" % (len(paint['row_runs']), paint['rows'])
-    
-    if len(paint['column_runs']) != paint['columns']:
-        raise "'column_runs' has %d columns, when it should have %d" % (len(paint['column_runs']), paint['columns'])
-    
-    for runs in paint['row_runs']:
-        for x in runs:
-            if type(x) != int:
-                raise "Row run %r contains a non-integer: %r" % (runs, x)
+    def EnsureListSize(sName, size):
+        if type(size) != int:
+            raise Exception("'rows' and 'columns' must be integers")
+        a = paint[sName]
+        if type(a) != list:
+            print "'%s' is not a list: %r" % (sName, a)
+            a = paint[sName] = []
             
-    for runs in paint['column_runs']:
-        for x in runs:
-            if type(x) != int:
-                raise "Column run %r contains a non-integer: %r" % (runs, x)
+        extra = len(a) - size
+        if extra > 0:
+            print "Too many items in %s - trimming to %d" % (sName, size)
+            a = a[0:size]
+        elif extra < 0:
+            print "Not enough items in %s - extending to %d" % (sName, size)
+            a.extend([[] for i in range(extra)])
+                      
+        for runs in a:
+            for x in runs:
+                if type(x) != int:
+                    raise Exception("Run %r contains a non-integer: %r" % (runs, x))
+    
+    EnsureListSize('row_runs', paint['rows'])
+    EnsureListSize('column_runs', paint['columns'])
+
     return paint
         
 def row_string(row):
@@ -156,9 +160,17 @@ class paint_iter(object):
         self.n = n
         self.aRuns = aRuns
         self.size = len(self.aRuns)
+        self.fFirst = True
+        self.fZero = False
         
         pos = 0
         self.aPos = []
+        
+        # Special case for all-zero runs
+        if self.size == 1 and aRuns[0] == 0:
+            self.fZero = True
+            return
+        
         for r in aRuns:
             self.aPos.append(pos)
             pos += r + 1
@@ -166,16 +178,22 @@ class paint_iter(object):
         pos -= 1    
         if pos > self.n:
             raise Exception("Runs %r won't fit in allotted space of %d squares." % (aRuns, n))
-
-        self.fFirst = True
         
     def __iter__(self):
         return self
 
     def next(self):
+        # If no runs are given, don't iterate on any positions
+        if self.size == 0:
+            raise StopIteration
+        
         if self.fFirst:
             self.fFirst = False
             return self.aPos
+        
+        if self.fZero:
+            raise StopIteration
+
         i = self.size - 1
         while True:
             if i < 0:
@@ -201,6 +219,11 @@ class paint_vector_iter(object):
     
     def next(self):
         aPos = self.pi.next()
+        
+        # Special case for zero vector
+        if aPos == []:
+            return [0 for i in range(self.n)]
+        
         aVector = [0 for i in range(self.n)]
         for i in range(self.size):
             for j in range(aPos[i], aPos[i]+self.aRuns[i]):
@@ -214,6 +237,9 @@ def solve_row(row, aRuns):
     patterns.  Patterns of runs that are not consistent with the current row
     pattern are ignored. """
     
+    if len(aRuns) == 0:
+        return row
+    
     n = len(row)
     pattern = None
     for trial in paint_vector_iter(n, aRuns):
@@ -224,13 +250,14 @@ def solve_row(row, aRuns):
                 intersect_row(pattern, trial)
                 
     if pattern is None:
-        raise "Inconsistent run description: %r cannot match row %s" % (aRuns, row_string(row))
+        raise Exception("Inconsistent run description: %r cannot match row %s" % (aRuns, row_string(row)))
 
-    # Copy the resulting pattern back into the original row             
+    # Copy the resulting pattern constraints back into the original row             
     for i in range(n):
-        row[i] = pattern[i]
+        if pattern[i] is not None:
+            row[i] = pattern[i]
                 
-    return pattern
+    return row
                 
 def consistent_row(row, trial):
     """ A trial is consistent if for all the 0's and 1's in row, we have
@@ -274,6 +301,13 @@ class TestPBN(unittest.TestCase):
         pi = [list(i) for i in paint_iter(3, [3])]
         self.assertEqual(pi, [[0]])
         
+        # Empty run list should not return any iterations
+        pi = [list(i) for i in paint_iter(3, [])]
+        self.assertEqual(pi, [])
+        
+        pi = [list(i) for i in paint_iter(3, [0])]
+        self.assertEqual(pi, [[]])
+        
     def test_iter_error(self):
         self.assertRaises(Exception, lambda x: paint_iter(3, [2,2]))
         
@@ -287,8 +321,12 @@ class TestPBN(unittest.TestCase):
         pi = list(paint_vector_iter(3, [3]))
         self.assertEqual(pi, [[1,1,1]])
         
-        pi = list(paint_vector_iter(3, []))
+        # Distinguish the empty run list (no information) - from one with a single zero
+        pi = list(paint_vector_iter(3, [0]))
         self.assertEqual(pi, [[0,0,0]])
+        
+        pi = list(paint_vector_iter(3, []))
+        self.assertEqual(pi, [])
         
     def test_row_util(self):
         self.assert_(consistent_row([1,0,None], [1,0,1]))
