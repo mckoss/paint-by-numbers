@@ -313,6 +313,9 @@ class TestPBN(unittest.TestCase):
         
         solution = solve_paint(test_data.simple2)
         self.assertEqual(solution, test_data.simple2['test_solution'])
+        
+        solution = solve_paint(test_data.simple3)
+        self.assertEqual(solution, test_data.simple3['test_solution'])
 
 if __name__ == "__main__":
     main()
