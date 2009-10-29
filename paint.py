@@ -248,6 +248,9 @@ def solve_row(row, aRuns):
                 pattern = trial
             else:
                 intersect_row(pattern, trial)
+            # Early exit if all pattern entries are None or same as existing row
+            if all(x is None or x == y for x,y in zip(pattern, row)):
+                break
                 
     if pattern is None:
         raise Exception("Inconsistent run description: %r cannot match row %s" % (aRuns, row_string(row)))
