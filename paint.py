@@ -1,20 +1,24 @@
+#!/usr/bin/env python
 """
 Paint.py - Paint by numbers solver
 """
 
-import sys, getopt, os
+import sys
+import getopt
+import os
 
+# easy_install pyyaml
 import yaml
 
 DEBUG = False
+
 
 def main():
     global DEBUG
     try:
         opts, args = getopt.getopt(sys.argv[1:], "dthf:")
     except getopt.GetoptError, err:
-        # print help information and exit:
-        print str(err) # will print something like "option -a not recognized"
+        print str(err)
         usage()
         sys.exit(2)
     if len(opts) == 0:
@@ -34,6 +38,7 @@ def main():
             suite = unittest.TestLoader().loadTestsFromTestCase(TestPBN)
             unittest.TextTestRunner(verbosity=2).run(suite)
 
+
 def usage():
     print "Usage: %s [-h | -t | -f <file>]\n" % os.path.basename(sys.argv[0])
     print "Options\n"
@@ -42,14 +47,17 @@ def usage():
     print "-t\t\t: Run Unit tests"
     print "-d\t\t: Print debug information during solve"
 
+
 def print_paint(paint):
     if 'solution' not in paint:
-        paint['solution'] = [[None for column in range(paint['columns'])] for row in range(paint['rows'])]
+        paint['solution'] = [[None for column in range(paint['columns'])]
+                             for row in range(paint['rows'])]
 
     i = 0
     for row in paint['solution']:
         i += 1
         print "Row %2d: %s" % (i, row_string(row))
+
 
 def load_paint(sFile):
     f = open(sFile)
@@ -82,6 +90,7 @@ def load_paint(sFile):
 
     return paint
 
+
 def row_string(row):
     s = ''
     for val in row:
@@ -99,18 +108,21 @@ def solve_paint(paint):
 
     rows: number of rows in the puzzle
     columns: number of columns in the puzzle
-    row_runs: array of sequences (one per row), of runs of consecutive 1's in the solution row
-    column_runs: array of sequences (one per column), of runs of consecutive 1's in the solution column
-    solution: (optional) partially specified array for the solution - an array of row vectors containing
-              0, 1, or None (not specified).
+    row_runs: array of sequences (one per row), of runs of consecutive 1's in
+        the solution row
+    column_runs: array of sequences (one per column), of runs of consecutive 1's in the
+        solution column
+    solution: (optional) partially specified array for the solution - an array of row
+        vectors containing 0, 1, or None (not specified).
 
-    We start with an un-constrained array for the solution (default, all None), and successively apply
-    the row and column runs to further constrain the solution until we can find no additional constrained
-    values.
+    We start with an un-constrained array for the solution (default, all None), and
+    successively apply the row and column runs to further constrain the solution until we
+    can find no additional constrained values.
     """
 
     if 'solution' not in paint:
-        paint['solution'] = [[None for column in range(paint['columns'])] for row in range(paint['rows'])]
+        paint['solution'] = [[None for column in range(paint['columns'])]
+                             for row in range(paint['rows'])]
 
     countLast = None
     countNone = sum(paint['solution'][i].count(None) for i in range(paint['rows']))
@@ -140,6 +152,7 @@ def solve_paint(paint):
 
     return paint['solution']
 
+
 def columns(a):
     """ Return a list for each of the columns on an array (generator function) """
     for column in range(len(a[0])):
@@ -148,10 +161,12 @@ def columns(a):
             aColumn.append(a[row][column])
         yield aColumn
 
+
 def set_column(a, i, column):
     for row in range(len(column)):
         a[row][i] = column[row]
     return a
+
 
 class paint_iter(object):
     """ Iterator for paint by numbers runs.  Returns all combinations
@@ -199,12 +214,13 @@ class paint_iter(object):
             if i < 0:
                 raise StopIteration
             self.aPos[i] += 1
-            for j in range(i+1, self.size):
-                self.aPos[j] = self.aPos[j-1] + self.aRuns[j-1] + 1
-            if self.aPos[self.size-1] + self.aRuns[self.size-1] > self.n:
+            for j in range(i + 1, self.size):
+                self.aPos[j] = self.aPos[j - 1] + self.aRuns[j - 1] + 1
+            if self.aPos[self.size - 1] + self.aRuns[self.size - 1] > self.n:
                 i -= 1
                 continue
             return self.aPos
+
 
 class paint_vector_iter(object):
     """ Iterator produces each of the vector representation of a paint by numbers run pattern """
@@ -226,9 +242,10 @@ class paint_vector_iter(object):
 
         aVector = [0 for i in range(self.n)]
         for i in range(self.size):
-            for j in range(aPos[i], aPos[i]+self.aRuns[i]):
+            for j in range(aPos[i], aPos[i] + self.aRuns[i]):
                 aVector[j] = 1
         return aVector
+
 
 def solve_row(row, aRuns):
     """ row contains 0,1, or None based on apriori values known to exist
@@ -249,11 +266,12 @@ def solve_row(row, aRuns):
             else:
                 intersect_row(pattern, trial)
             # Early exit if all pattern entries are None or same as existing row
-            if all(x is None or x == y for x,y in zip(pattern, row)):
+            if all(x is None or x == y for x, y in zip(pattern, row)):
                 break
 
     if pattern is None:
-        raise Exception("Inconsistent run description: %r cannot match row %s" % (aRuns, row_string(row)))
+        raise Exception("Inconsistent run description: %r cannot match row %s" %
+                        (aRuns, row_string(row)))
 
     # Copy the resulting pattern constraints back into the original row
     for i in range(n):
@@ -261,6 +279,7 @@ def solve_row(row, aRuns):
             row[i] = pattern[i]
 
     return row
+
 
 def consistent_row(row, trial):
     """ A trial is consistent if for all the 0's and 1's in row, we have
@@ -271,6 +290,7 @@ def consistent_row(row, trial):
             return False
 
     return True
+
 
 def intersect_row(pattern, trial):
     """ Reduce the pattern by setting non-matching cells in trial to None """
@@ -289,6 +309,7 @@ import unittest
 
 import test_data
 
+
 class TestPBN(unittest.TestCase):
     def test_iter(self):
         pi = [list(i) for i in paint_iter(10, [1])]
@@ -298,8 +319,8 @@ class TestPBN(unittest.TestCase):
         pi = [list(i) for i in paint_iter(10, [2])]
         self.assertEqual(len(pi), 9)
 
-        pi = [list(i) for i in paint_iter(4, [1,1])]
-        self.assertEqual(pi, [[0,2], [0,3], [1, 3]])
+        pi = [list(i) for i in paint_iter(4, [1, 1])]
+        self.assertEqual(pi, [[0, 2], [0, 3], [1, 3]])
 
         pi = [list(i) for i in paint_iter(3, [3])]
         self.assertEqual(pi, [[0]])
@@ -312,39 +333,39 @@ class TestPBN(unittest.TestCase):
         self.assertEqual(pi, [[]])
 
     def test_iter_error(self):
-        self.assertRaises(Exception, lambda x: paint_iter(3, [2,2]))
+        self.assertRaises(Exception, lambda x: paint_iter(3, [2, 2]))
 
     def test_paint_vector(self):
         pi = list(paint_vector_iter(2, [1]))
-        self.assertEqual(pi, [[1,0], [0,1]])
+        self.assertEqual(pi, [[1, 0], [0, 1]])
 
         pi = list(paint_vector_iter(5, [1, 2]))
-        self.assertEqual(pi, [[1,0,1,1,0],[1,0,0,1,1],[0,1,0,1,1]])
+        self.assertEqual(pi, [[1, 0, 1, 1, 0], [1, 0, 0, 1, 1], [0, 1, 0, 1, 1]])
 
         pi = list(paint_vector_iter(3, [3]))
-        self.assertEqual(pi, [[1,1,1]])
+        self.assertEqual(pi, [[1, 1, 1]])
 
         # Distinguish the empty run list (no information) - from one with a single zero
         pi = list(paint_vector_iter(3, [0]))
-        self.assertEqual(pi, [[0,0,0]])
+        self.assertEqual(pi, [[0, 0, 0]])
 
         pi = list(paint_vector_iter(3, []))
         self.assertEqual(pi, [])
 
     def test_row_util(self):
-        self.assert_(consistent_row([1,0,None], [1,0,1]))
-        self.assertEqual(consistent_row([1,0,None], [0,0,1]), False)
+        self.assert_(consistent_row([1, 0, None], [1, 0, 1]))
+        self.assertEqual(consistent_row([1, 0, None], [0, 0, 1]), False)
 
-        self.assertEqual(intersect_row([1,0,1], [1,0,0]), [1,0,None])
+        self.assertEqual(intersect_row([1, 0, 1], [1, 0, 0]), [1, 0, None])
 
     def test_solve_row(self):
-        self.assertEqual(solve_row([None,None,None], [3]), [1, 1, 1])
-        self.assertEqual(solve_row([None,None,None], [2]), [None, 1, None])
-        self.assertEqual(solve_row([None,None,None], [1,1]), [1,0,1])
+        self.assertEqual(solve_row([None, None, None], [3]), [1, 1, 1])
+        self.assertEqual(solve_row([None, None, None], [2]), [None, 1, None])
+        self.assertEqual(solve_row([None, None, None], [1, 1]), [1, 0, 1])
 
     def test_columns(self):
-        self.assertEqual(list(columns([[1,2],[3,4]])), [[1,3],[2,4]])
-        self.assertEqual(set_column([[1,2],[3,4]], 1, [5,6]), [[1,5],[3,6]])
+        self.assertEqual(list(columns([[1, 2], [3, 4]])), [[1, 3], [2, 4]])
+        self.assertEqual(set_column([[1, 2], [3, 4]], 1, [5, 6]), [[1, 5], [3, 6]])
 
     def test_solve_paint(self):
         solution = solve_paint(test_data.simple1)
