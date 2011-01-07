@@ -10,6 +10,14 @@ You'll need [PyYaml](http://pyyaml.org/wiki/PyYAML) installed:
 
     $ easy_install pyyaml
 
+This program is limited in that it sovles by considering row contraints
+and column constraints independently.  There are some class of puzzles
+that require logic that considers row and column constraints together
+in order to solve.
+
+When a puzzle cannot be completely solved, a partial solution will be
+displayed.
+
 Usage
 ==
 
@@ -24,6 +32,8 @@ Options
 
 Example
 ==
+A complete solution:
+
     $ ./paint.py -f 024.yaml
 
     Row  1: ...XXXX.............
@@ -46,3 +56,23 @@ Example
     Row 18: ......XXXXX..X.XX...
     Row 19: ......X.XX...X.XX...
     Row 20: ......X.XX...X.XX...
+
+A partial solution:
+
+    $ ./paint.py -f 006.yaml
+
+    Row  1: .....XXXXXX....
+    Row  2: .XXXXX....X....
+    Row  3: XX....___XXX___
+    Row  4: X.___.___..X.__
+    Row  5: X.....___XXX___
+    Row  6: XX.__.___...___
+    Row  7: .XXXX._________
+    Row  8: _X________X____
+    Row  9: _._____________
+    Row 10: _______________
+    Row 11: _________X_____
+    Row 12: _______________
+    Row 13: _______________
+    Row 14: _______________
+    Row 15: _______________
